@@ -1,22 +1,39 @@
-# sport-os-backend — Stack Conventions
+# CLAUDE.md — sport-os-backend
+
+## Purpose
+FastAPI backend for Sport-OS: auth, athlete profiles, events, telemetry ingestion, and APIs consumed by sport-os-mobile and sport-os-ai.
 
 ## Stack
-- Python 3.11+, FastAPI, SQLAlchemy 2.x, Alembic, PostgreSQL
-- Package manager: uv (preferred) or pip + pyproject.toml
-- Containerisation: Docker + docker-compose for local dev
+- Python 3.11, FastAPI, Pydantic v2
+- SQLAlchemy 2 (async), Alembic
+- PostgreSQL 16, Redis (cache + pub/sub)
+- uv (package manager), Docker Compose (local dev)
 
-## Code Conventions
-- Ruff for formatting and linting (`ruff format .` / `ruff check .`)
-- Type hints required on all public functions
-- Pydantic v2 models for all request/response schemas
-- Async by default; sync only for Alembic migrations
+## Key Directories
+- `app/api/v1/` — route handlers by domain
+- `app/core/` — pydantic-settings config, JWT, DI
+- `app/models/` — SQLAlchemy ORM models
+- `app/schemas/` — Pydantic v2 request/response schemas
+- `app/services/` — business logic; never called directly from routes without a service layer
+- `tests/` — pytest, httpx AsyncClient, factory_boy
 
-## Testing
-- pytest + pytest-asyncio + httpx async test client
-- Coverage gate: 80 %
-- Integration tests hit real Postgres via testcontainers
+## Dev Commands
+```bash
+uv run uvicorn app.main:app --reload
+uv run pytest
+uv run ruff check . --fix
+uv run mypy app/
+uv run alembic upgrade head
+```
 
-## Git
-- Branches: feat/, fix/, chore/
-- Conventional commits (feat:, fix:, chore:, docs:)
-- PRs merged via squash; main is protected
+## Conventions
+- `async def` throughout; no sync DB calls in async routes
+- Never return ORM models directly — always use a Pydantic schema
+- Secrets via pydantic-settings from `.env`; never hardcode
+- All endpoints under `/api/v1/`
+- Services raise `HTTPException` for domain errors
+
+## Related Repos
+- [sport-os-mobile](https://github.com/valentinmariusdynu-tech/sport-os-mobile) — primary API consumer
+- [sport-os-ai](https://github.com/valentinmariusdynu-tech/sport-os-ai) — calls telemetry endpoints
+- [sport-os-infra](https://github.com/valentinmariusdynu-tech/sport-os-infra) — K8s/Terraform deploy config
